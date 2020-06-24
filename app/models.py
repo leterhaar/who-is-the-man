@@ -77,6 +77,32 @@ class Game(db.Model):
 
     players = db.relationship('User', backref='game', lazy='dynamic')
 
+    def set_host(self, user):
+        ''' adds a host to the game '''
+        if not user in self.players:
+            self.players.append(user)
+        user.role = current_app.config['ROLES']['HOST']
+        db.session.add(user)
+
+    def get_host(self):
+        ''' returns the host '''
+        for u in self.players:
+            if u.role == current_app.config['ROLES']['HOST']:
+                return u
+
+    def get_join_token(self, expires_in=600):
+        return jwt.encode(
+            {'join_game': self.id, 'exp': time() + expires_in},
+            current_app.config['SECRET_KEY'], algorithm='HS256').decode('utf-8')
+
+    @staticmethod
+    def verify_join_token(token):
+        try:
+            id = jwt.decode(token, current_app.config['SECRET_KEY'], algorithms=['HS256'])['join_game']
+        except:
+            return
+        return Game.query.get(id)
+
     def __repr__(self):
         return f'<Game {self.name}>'
 

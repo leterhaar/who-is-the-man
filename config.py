@@ -21,4 +21,4 @@ class Config(object):
     MAIL_PASSWORD = os.environ.get('MAIL_PASSWORD')
     ADMINS = ['oleterhaar@pm.me']
 
-    ROLES = {0: 'Host', 1: 'Player'}
+    ROLES = {'HOST' : 1, 'PLAYER': 2}

@@ -7,6 +7,7 @@ from flask_mail import Mail
 from flask_bootstrap import Bootstrap
 from flask_moment import Moment
 from flask_babel import Babel, lazy_gettext as _l
+from flask_qrcode import QRcode
 import logging
 from logging.handlers import SMTPHandler, RotatingFileHandler
 import os
@@ -15,11 +16,12 @@ db = SQLAlchemy()
 migrate = Migrate()
 login = LoginManager()
 login.login_view = 'auth.register'
-login.login_message = _l('Please introduce yourself :)')
+login.login_message = None #_l('Please introduce yourself :)')
 mail = Mail()
 bootstrap = Bootstrap()
 moment = Moment()
 babel = Babel()
+qrcode = QRcode()
 
 def create_app(config_class=Config):
     ''' Creates an instance of the Flask app '''
@@ -34,6 +36,7 @@ def create_app(config_class=Config):
     bootstrap.init_app(app)
     moment.init_app(app)
     babel.init_app(app)
+    qrcode.init_app(app)
 
     from app.models import User, Game, Notification
 
