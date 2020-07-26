@@ -1,0 +1,43 @@
+{% extends 'base.html' %}
+
+{% block app_content %}
+
+    <h1>{{ _('Welcome in the lobby') }}</h1>
+
+    <div class="row">
+        <div class="col-md-4">
+            {% if current_user.game %} 
+                <p>{{ _('You are currently playing <b>%(game)s</b>', game=current_user.game.name) }}</b></p>
+            <p>
+            {{_('Players:') }}
+                <ul id="player_list">
+                    {% for user in current_user.game.players %}
+                        <li>{{ user.username }}{% if user == current_user.game.get_host() %} ({{ _('Host') }}){% endif %}</li>
+                    {% endfor %}
+                </ul>
+            </p>
+            <hr>
+            {% if current_user.is_host() %}
+            <p>{{ _('Everybody here?') }} <a class="button btn btn-info" href="{{ url_for('main.init_game') }}">{{ _("Let's start!") }}</a></p>
+            {% else %}
+                <p class="info">Wait for the host to start the game...</p>
+            {% endif %}
+            <p>{{ _('Invite players for this game through <a href="%(url)s">this link</a>', url=url_for('auth.join_game', token=current_user.game.get_join_token(), _external=True)) }}</p>
+            <p>{{ _('Alternatively, you can share the following QR code with your buddies:') }}<br/><img src="{{ qrcode(url_for('auth.join_game', token=current_user.game.get_join_token(), _external=True)) }}" width=150></p>
+
+            {% else %}
+                {{ _('No game selected -- join another game (TBC) or <a href="%(url)s">create your own!</a>', url=url_for('auth.create_game')) }}
+            {% endif %}
+        </div>
+    </div>
+
+{% endblock %}
+
+{% block scripts %}
+    {{ super() }}
+    <script>
+        function new_player_joined(data){
+            $("#players").children().append('<li>' + data['username'] + '</li>')
+        }
+    </script>
+{% endblock %}

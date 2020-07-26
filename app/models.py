@@ -22,47 +22,25 @@ class User(UserMixin, db.Model):
 
     role = db.Column(db.SmallInteger)
 
+    team = db.Column(db.SmallInteger)
+
     notifications = db.relationship('Notification',
                                     backref='user',
                                     lazy='dynamic')
-
-    # Function to set the password
-    def set_password(self, password):
-        ''' generates password hash '''
-        self.password_hash = generate_password_hash(password)
-
-    def check_password(self, password):
-        ''' checks password against stored hash '''
-        return check_password_hash(self.password_hash, password)
-
-    def get_reset_password_token(self, expires_in=600):
-        return jwt.encode(
-            {'reset_password': self.id, 'exp': time() + expires_in},
-            current_app.configconfig['SECRET_KEY'], algorithm='HS256').decode('utf-8')
-
-    @staticmethod
-    def verify_reset_password_token(token):
-        try:
-            id = jwt.decode(token, current_app.configconfig['SECRET_KEY'], algorithms=['HS256'])['reset_password']
-        except:
-            return
-        return User.query.get(id)
 
     def avatar(self, size=128):
         ''' Returns URL for Gravatar '''
         digest = md5(self.email.lower().encode('utf-8')).hexdigest()
         return f'https://www.gravatar.com/avatar/{digest}?d=identicon&s={size}'
 
-    def new_messages(self):
-        last_read_time = self.last_message_read_time or datetime(1900, 1, 1)
-        return Message.query.filter_by(recipient=self).filter(
-            Message.timestamp > last_read_time).count()
-
     def add_notification(self, name, data):
-        self.notifications.filter_by(name=name).delete()
+        #self.notifications.filter_by(name=name).delete()
         n = Notification(name=name, payload_json=json.dumps(data), user=self)
         db.session.add(n)
         return n
+
+    def is_host(self):
+        return self.role == current_app.config['ROLES']['HOST']
 
     def __repr__(self):
         return f'<User {self.username}>'
@@ -76,6 +54,8 @@ class Game(db.Model):
     created = db.Column(db.DateTime, default=datetime.utcnow)
 
     players = db.relationship('User', backref='game', lazy='dynamic')
+
+    settings = db.relationship('Setting', backref='game', lazy='dynamic')
 
     def set_host(self, user):
         ''' adds a host to the game '''
@@ -103,9 +83,26 @@ class Game(db.Model):
             return
         return Game.query.get(id)
 
+    def setting(self, key, value=None):
+        if value is None:
+            return Setting.query.filter_by(game=self, key=key).first().value
+        s = Setting(game=self, key = key, value = value)
+        db.session.add(s)
+
     def __repr__(self):
         return f'<Game {self.name}>'
 
+class Setting(db.Model):
+    ''' class to store settings per game '''
+
+    # define fields
+    id = db.Column(db.Integer, primary_key=True)
+    game_id = db.Column(db.Integer, db.ForeignKey('game.id'))
+    key = db.Column(db.String(128))
+    value = db.Column(db.String(128))
+
+    def __repr__(self):
+        return f'<Setting {self.key} for {self.game.name}>'
 
 # User loader for Flask Login module
 @login.user_loader
